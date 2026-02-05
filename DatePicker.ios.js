@@ -1,86 +1,95 @@
 'use strict';
 
-import React, { Component } from 'react'
-import ReactNative, {
+import React, { Component } from 'react';
+import {
     DatePickerIOS,
     Modal,
     TouchableOpacity,
     Text,
     View,
-} from 'react-native'
-
-import autobind from 'autobind-decorator'
+} from 'react-native';
 
 export default class DatePicker extends Component {
-
-
     state = {
         visible: false,
         date: null,
+    };
 
-    }
-
-    @autobind
-    open(options) {
+    // 데코레이터 제거: 클래스 필드(화살표 함수)로 this 바인딩 보장
+    open = (options) => {
         let date;
-        if (options) {
-            if (options.date) {
-                date = options.date
-            }
+        if (options && options.date) date = options.date;
+        if (!date) date = new Date();
+
+        this.setState({ date, visible: true });
+
+        return new Promise((resolve, reject) => {
+            this.resolve = resolve;
+            this.reject = reject;
+        });
+    };
+
+    close = () => {
+        this.setState({ visible: false });
+    };
+
+    cancel = () => {
+        if (this.resolve) {
+            this.resolve({ action: 'dismissedAction' });
         }
-        if (!date) date = new Date()
-        this.setState({ date, visible: true })
+        this.close();
+    };
 
-        return new Promise((resolv, reject) => {
-            this.resolv = resolv
-            this.reject = reject
-        })
+    ok = () => {
+        const { date } = this.state;
+        if (this.resolve) {
+            this.resolve({
+                action: 'dateSetAction',
+                year: date.getFullYear(),
+                month: date.getMonth(),
+                day: date.getDate(),
+            });
+        }
+        this.close();
+    };
 
-    }
+    onDateChange = (date) => {
+        this.setState({ date });
+    };
 
-    @autobind
-    close() {
-        this.setState({ visible: false })
-    }
-
-    @autobind
-    cancel() {
-        this.resolv({
-            action: "dismissedAction",
-        })
-        this.close()
-    }
-
-    @autobind
-    ok() {
-        const {date} = this.state
-        this.resolv({
-            action: "dateSetAction",
-            year: date.getFullYear(),
-            month: date.getMonth(),
-            day: date.getDate(),
-        })
-        this.close()
-    }
-
-
-    @autobind
-    onDateChange(date) {
-        this.setState({ date: date });
-    }
-
-
-    render() {
-        const { visible, date } = this.state
-        const { style } = this.props
-
+    getButton = () => {
+        const { iosCloseButton } = this.props;
+        if (iosCloseButton) return iosCloseButton;
 
         return (
-            <Modal ref={(modal) => this.modal = modal}
+            <View style={{ flexDirection: 'row', justifyContent: 'center' }}>
+                <TouchableOpacity
+                    onPress={this.cancel}
+                    style={{ width: 85, height: 30, alignItems: 'center' }}
+                >
+                    <Text>Cancel</Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                    onPress={this.ok}
+                    style={{ width: 85, height: 50, alignItems: 'center' }}
+                >
+                    <Text>O K</Text>
+                </TouchableOpacity>
+            </View>
+        );
+    };
+
+    render() {
+        const { visible, date } = this.state;
+        const { style } = this.props;
+
+        return (
+            <Modal
+                ref={(modal) => (this.modal = modal)}
                 visible={visible}
                 onRequestClose={this.close}
-
-                >
+            >
                 <View
                     style={{
                         flex: 1,
@@ -89,51 +98,20 @@ export default class DatePicker extends Component {
                         paddingVertical: 100,
                         backgroundColor: 'rgba(0,0,0,0.5)',
                     }}
-                    >
-                    <View style={[{backgroundColor:'white'}, style]}>
-
-                    {
-                        visible ?
+                >
+                    <View style={[{ backgroundColor: 'white' }, style]}>
+                        {visible ? (
                             <DatePickerIOS
                                 date={date}
                                 mode="date"
                                 onDateChange={this.onDateChange}
-                                />
-                            : null
-                    }
-                    {
-                        visible ? this.getButton() : null
-                    }
+                            />
+                        ) : null}
+
+                        {visible ? this.getButton() : null}
                     </View>
                 </View>
-            </Modal >
-
-        )
-    }
-
-    @autobind
-    getButton() {
-        const {iosCloseButton} = this.props
-
-        if (iosCloseButton) return iosCloseButton
-
-        return (
-            <View style={{
-                flexDirection: 'row', justifyContent: 'center',
-
-            }}>
-                <TouchableOpacity onPress={this.cancel}
-                    style={{ width: 85, height: 30, alignItems: 'center', }}
-                    >
-                    <Text>Cancel</Text>
-                </TouchableOpacity>
-
-                <TouchableOpacity onPress={this.ok}
-                    style={{ width: 85, height: 50, alignItems: 'center', }}
-                    >
-                    <Text>O K</Text>
-                </TouchableOpacity>
-            </View>
-        )
+            </Modal>
+        );
     }
 }
